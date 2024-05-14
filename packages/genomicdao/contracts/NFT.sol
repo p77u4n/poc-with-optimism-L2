@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract GeneNFT is ERC721, ERC721Burnable, Ownable {
 	uint256 private _tokenIdCounter;
-	constructor(address admin) ERC721("GeneNFT", "GNFT") Ownable(admin) {}
+	constructor() ERC721("GeneNFT", "GNFT") Ownable(msg.sender) {}
 
 	function safeMint(address to) public onlyOwner returns (uint256) {
 		uint256 tokenId = _tokenIdCounter;

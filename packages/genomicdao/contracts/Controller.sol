@@ -111,10 +111,7 @@ contract Controller {
 			sessions[sessionId].proof = proof;
 			uint256 newNFTId = geneNFT.safeMint(msg.sender);
 			nftDocs[newNFTId] = docId;
-			pcspToken.reward(
-				msg.sender,
-				token.PostCovidStrokePrevention.RiskLevel(riskScore)
-			);
+			pcspToken.reward(msg.sender, riskScore);
 			sessions[sessionId].confirmed = true;
 		}
 		// TODO: Update doc content

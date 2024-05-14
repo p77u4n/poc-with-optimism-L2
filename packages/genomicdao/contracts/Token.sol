@@ -20,9 +20,8 @@ contract PostCovidStrokePrevention is ERC20, ERC20Burnable, Ownable {
 		uint192 extremelyLevelAward,
 		uint192 hightLevelAward,
 		uint192 slightlyHightLevelAward,
-		uint192 normalLevelAward,
-		address admin
-	) ERC20("Post-Covid Stroke Prevention", "PCSP") Ownable(admin) {
+		uint192 normalLevelAward
+	) ERC20("Post-Covid Stroke Prevention", "PCSP") Ownable(msg.sender) {
 		_mint(msg.sender, withDecimal(initialSupply));
 		// "extremely high risk"
 		riskScoreToAward[RiskLevel.Extremely] = withDecimal(
@@ -46,8 +45,15 @@ contract PostCovidStrokePrevention is ERC20, ERC20Burnable, Ownable {
 		_mint(to, amount);
 	}
 
-	function reward(address to, RiskLevel riskScore) public onlyOwner {
-		// TODO: Implement this method: Award PCSP to the user based on his/her risk score
-		_transfer(address(0), to, riskScoreToAward[riskScore]);
+	function reward(address to, uint256 riskScorePlus1) public onlyOwner {
+		// TODO: Implement this method: ARiskLevel ward PCSP to the user based on his/her risk score
+		if (riskScorePlus1 > (uint256(type(RiskLevel).max) + 1)) {
+			revert("No reward for the risk score");
+		}
+		_update(
+			address(0),
+			to,
+			riskScoreToAward[RiskLevel(riskScorePlus1 - 1)]
+		);
 	}
 }
