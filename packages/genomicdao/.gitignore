@@ -1,6 +1,8 @@
 # dependencies
 node_modules
 
+packages/nextjs
+
 # env files
 .env
 
