@@ -1,38 +1,34 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   PrimaryColumn,
-  ManyToOne,
   JoinColumn,
   Column,
   CreateDateColumn,
+  OneToOne,
 } from 'typeorm';
 
-@Entity('users')
-export class DMUser {
+@Entity('docs')
+export class DMDoc {
   @PrimaryColumn('uuid')
   id: string;
 }
 
 @Entity('gene_analytic_tasks')
 export class DMTask {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @ManyToOne(() => DMUser, {
+  @OneToOne(() => DMDoc, {
     onDelete: 'SET NULL',
     onUpdate: 'CASCADE',
   })
   @JoinColumn({
-    name: 'user_id',
+    name: 'doc_id',
   })
-  user: DMUser;
+  doc: DMDoc;
 
   @Column({
     nullable: false,
     type: 'uuid',
   })
-  user_id: string;
+  doc_id: string;
 
   @Column({
     type: 'text',

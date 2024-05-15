@@ -21,8 +21,7 @@ function isStatus(v: string): v is Statuses {
 }
 
 export interface Task {
-  id: UUID;
-  userId: UUID;
+  docId: UUID;
   status: Statuses;
   createdAt: Date;
   result: Option.Option<string>;
@@ -31,25 +30,19 @@ export interface Task {
 }
 
 export const parseTask = (params: {
-  id: string;
-  userId: string;
+  docId: string;
   status: string;
   result?: string;
   failReason?: string;
   geneFile: string;
   createdAt: Date;
 }): Either.Either<Error, Task> => {
-  return match([params.userId, params.id, params.status])
+  return match([params.docId, params.status])
     .with(
-      [
-        P.select('userId', P.when(isUUID)),
-        P.select('id', P.when(isUUID)),
-        P.select('status', P.when(isStatus)),
-      ],
-      ({ userId, status, id }) => {
+      [P.select('docId', P.when(isUUID)), P.select('status', P.when(isStatus))],
+      ({ docId, status }) => {
         return Either.right({
-          id,
-          userId,
+          docId,
           status: status,
           result: Option.fromNullable(params.result),
           failReason: Option.fromNullable(params.failReason),

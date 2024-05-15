@@ -5,10 +5,14 @@ export interface DomainEvent<Props> {
   data: Props;
 }
 
+export type EventHandler<Event extends DomainEvent<any>> = (
+  eventProps: Event['data'],
+) => TE.TaskEither<Error, any>;
+
 export interface EventBus {
-  emit: <Props>(event: DomainEvent<Props>) => void;
-  on: <Props>(
+  emit: <Event extends DomainEvent<any>>(event: Event) => void;
+  on: <Event extends DomainEvent<any>>(
     event: string,
-    callback: (eventProps: Props) => TE.TaskEither<Error, any>,
+    callback: EventHandler<Event>,
   ) => void;
 }

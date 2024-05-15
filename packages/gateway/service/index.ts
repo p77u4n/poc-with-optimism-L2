@@ -5,15 +5,15 @@ import * as Opt from 'fp-ts/lib/Option';
 import * as Either from 'fp-ts/lib/Either';
 import { pipe } from 'fp-ts/lib/function';
 import { DataSource } from 'typeorm';
-import { DMTask } from 'database-typeorm/entities';
-import { v1 } from 'uuid';
+import { DMDoc, DMTask } from 'database-typeorm/entities';
 import { UploadFile } from 'core/model/file';
 import { ObjectStoragePort } from 'ports/object-storage.base';
 import { TaskQueue } from 'ports/task-queue/task-queue.base';
+import { DomainEvent, EventBus } from 'events/event-bus.base';
 
 // has sideeffect so we use IO here to wrap the side-effect logic (FP principle)
 const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
-  dmTask.user_id = task.userId;
+  dmTask.doc_id = task.docId;
   dmTask.status = task.status;
   // dmTask.file = task.file;
   dmTask.result = pipe(
@@ -21,7 +21,6 @@ const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
     Opt.getOrElse(() => null),
   );
   dmTask.gene_file = task.geneFile;
-  dmTask.id = task.id;
   dmTask.created_at = task.createdAt;
   dmTask.reason = pipe(
     task.failReason,
@@ -30,15 +29,39 @@ const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
   return dmTask;
 };
 
+export type RequestStartEvent = DomainEvent<{ docId: string }>;
+
 export class TypeORMRabbitMqCMDService implements BaseCommandService {
   constructor(
     private datasource: DataSource,
     private taskQueue: TaskQueue,
     private objectStorageClient: ObjectStoragePort,
+    private eventBus: EventBus,
   ) {}
 
   createDMTask = (datasource: DataSource) => (task: Task) => {
-    return pipe(
+    const createDocResult = pipe(
+      Either.tryCatch(
+        () => {
+          return datasource.getRepository(DMDoc).create({});
+        },
+        (e) => new Error(`REQUEST_CREATE_DOC_FAILED ${e}`),
+      ),
+      TE.fromEither,
+      TE.chain((dmDoc) =>
+        TE.fromIO(() => {
+          dmDoc.id = task.docId;
+          return dmDoc;
+        }),
+      ),
+      TE.chain((dmDoc) =>
+        TE.tryCatch(
+          () => datasource.getRepository(DMDoc).save(dmDoc),
+          (e) => new Error(`REQUEST_CREATE_DOC_FAILED ${e}`),
+        ),
+      ),
+    );
+    const createTaskResult = pipe(
       Either.tryCatch(
         () => {
           return datasource.getRepository(DMTask).create({});
@@ -57,19 +80,39 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
         ),
       ),
     );
+    return pipe(
+      createDocResult,
+      TE.chain(() => createTaskResult),
+    );
   };
+
+  _checkIfDocIdSubmit(docId: string): TE.TaskEither<Error, void> {
+    return pipe(
+      TE.tryCatch(
+        () => this.datasource.getRepository(DMDoc).findOneById(docId),
+        (e) => e,
+      ),
+      TE.chain((doc) =>
+        doc == null
+          ? TE.right(null)
+          : TE.left(new Error('DOC_ALREADY_EXISTED')),
+      ),
+      TE.mapLeft((e) => e as Error),
+    );
+  }
+
   requestAnalytic(
-    userId: string,
+    docId: string,
     fileGene: UploadFile,
   ): TE.TaskEither<Error, string> {
-    return pipe(
+    const validation = pipe(docId, this._checkIfDocIdSubmit);
+    const mainLogic = pipe(
       [fileGene],
       this.objectStorageClient.updateGeneData,
       TE.flatMap((fileLinks) =>
         TE.fromEither(
           parseTask({
-            id: v1(),
-            userId,
+            docId,
             geneFile: fileLinks[0],
             status: Statuses.PENDING,
             createdAt: new Date(Date.now()),
@@ -77,13 +120,26 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
         ),
       ),
       TE.tap(this.createDMTask(this.datasource)),
+      TE.tap((task) => {
+        this.eventBus.emit<RequestStartEvent>({
+          name: 'requestStart',
+          data: {
+            docId: task.docId,
+          },
+        });
+        return TE.right(null);
+      }),
       TE.tap(
         this.taskQueue.putTask.bind(
           this.taskQueue,
         ) as typeof this.taskQueue.putTask,
       ),
-      TE.map((task) => task.id),
+      TE.map((task) => task.docId),
       // put to rabbimq here
+    );
+    return pipe(
+      validation,
+      TE.chain(() => mainLogic),
     );
   }
 }
