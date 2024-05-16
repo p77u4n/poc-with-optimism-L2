@@ -1,31 +1,4 @@
-<div align="center">
-  <a href="https://optimism.io"><img alt="Optimism" src="https://raw.githubusercontent.com/ethereum-optimism/brand-kit/main/assets/svg/OPTIMISM-R.svg" width=320></a>
-  <br />
-  <br />
-</div>
-
-# 🏗🔴 Scaffold-OP
-
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
-
-Scaffold-OP is a fork of Scaffold-ETH2 with minimal differences, providing additional dApp examples, native support for Superchain testnets, and more low-level instructions. We highly recommend the Scaffold-ETH2 docs as the primary guideline.
-
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
-
-⚙️ Built using NextJS, RainbowKit, Hardhat, Wagmi, Viem, and Typescript.
-
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
-
-![Debug Contracts tab](https://github.com/ethereum-optimism/scaffold-op/blob/main/packages/nextjs/public/scaffold-op-landing.png)
-
-## Requirements
+# POC
 
 Before you begin, you need to install the following tools:
 
@@ -33,88 +6,146 @@ Before you begin, you need to install the following tools:
 - Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
 - [Git](https://git-scm.com/downloads)
 
-## Quickstart
+## Concept (Model)
 
-To get started with Scaffold-OP, follow the steps below:
+### Task
 
-1. Clone this repo & install dependencies
+User khi upload document lên hệ thống sẽ mã hóa và lưu trữ tại một storage (trong implementation này lưu ở R2 Cloudflare),  sau đó TEE service sẽ xử lý nó bằng thuật toán học máy, cuối cùng cập nhật kết quả
+
+Tất cả quá trình này ta gọi là một Task
+
+### Doc
+
+Là file mà người dùng upload lên, có định danh là docID
+
+## Mạng
+
+Kiểm thử chạy trên L2 chain dựng trên local được cung cấp bởi hardhat
+
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-16-23-39-24-image.png)
+
+### Explorer
+
+Trong repo (fork từ repo Scaffold-OP), có thư mục nextjs, sau khi deploy và compile contract lên local network, scaffold-op sẽ tự động sinh các abi metada của contract được deploy để giúp explorer có thể thao tác với chúng. Nhờ đó ta có thể debug contract trên giao diện này.
+
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-16-23-55-37-image.png)
+
+## Kiến trúc
+
+Bao gồm các service sau
+
+* Contract chạy trên EVM Sepolia, L2 chain network là local chain cung cấp bởi hardhat chạy trên máy
+
+* **Gateway**: là RestAPI bằng ExpressJS, có nhiệm vụ nhận upload từ người dùng và thực hiện các truy vấn cơ bản về trạng thái của task, có tương tác với onchain để thực hiện khởi tạo session, và cập nhận wallet user trong session (vì lúc gửi lên là admin gửi nên user trong session sẽ là admin, vậy nên sau khi khởi tạo cần có cập nhập lại với địa chỉ ví user)
+
+* **TEE**: là một service mock giả lập môi trường an toàn để xử lý dữ liệu Gene của người đăng ký, nó giữ private key để giải mã rồi mới xử lý dữ liệu.
+
+* **User-Portal**: là giao diện web cho phép người dùng upload dữ liệu, gửi request confirm khi TEE đã xử lý xong tác vụ học máy.
+
+### Contract
+
+[source](https://github.com/p77u4n/simple-poc-interview-l2/tree/main/packages/genomicdao)
+
+#### Test
 
 ```
-git clone https://github.com/ethereum-optimism/scaffold-op.git
-cd scaffold-op
-yarn install
+yarn test
 ```
 
-2. Run a local network in the first terminal:
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-16-23-59-07-image.png)
 
 ```
-yarn chain
+yarn build
 ```
 
-This command starts a local Ethereum network using Hardhat. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `hardhat.config.ts`.
+Để chạy được các service thì cần phải build abi của genomicdao trước, vì các service khác có tham khảo type của module này
 
-3. On a second terminal, deploy the test contract:
+#### Compile
+
+```
+yarn clean-compile
+```
+
+Sẽ sinh ra artifact và typechain-types (chứa abi)
+
+#### Deploy
+
+Cần biến môi trường `DEPLOYER_PRIVATE_KEY`
 
 ```
 yarn deploy
 ```
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/hardhat/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/hardhat/deploy` to deploy the contract to the network. You can also customize the deploy script.
+Được địa chỉ contract ta cần lưu vào để nhét vào env của các service cần interacting với contract
 
-4. On the same terminal, start your NextJS app:
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-02-07-image.png)
+
+### Gateway
+
+Stack: NodeJS, ExpressJS
+
+[core](https://github.com/p77u4n/simple-poc-interview-l2/tree/main/packages/gateway/core): chứa định nghĩa domain model, và base class định nghĩa cho các command handler, command querier
+
+**port**:
+
+* task-queue: tương tác với task queue nhằm put task cho TEE thực hiện xử lý (impl: [RabbitMQ](https://github.com/p77u4n/simple-poc-interview-l2/blob/main/packages/gateway/ports/task-queue/rabbit-queue.ts))
+
+* encryptor: tương tác với encryptor để mã hóa dữ liệu (impl: [Encryptor]([https://github.com/p77u4n/simple-poc-interview-l2/blob/main/packages/gateway/ports/encryptor.default.ts))
+
+* onchain: tương tác với network onchain (impl: [Web3](https://github.com/p77u4n/simple-poc-interview-l2/blob/main/packages/gateway/ports/onchain/onchain.web3js.ts))
+
+* object-storage: để tương tác với object storage provider (implementation: [S3Port](https://github.com/p77u4n/simple-poc-interview-l2/blob/main/packages/gateway/ports/s3-storage-port.ts))
+
+**service**: command usecase ở application layer, chỉ gồm một usecase cơ bản
+
+* [requestAnalytic](https://github.com/p77u4n/simple-poc-interview-l2/blob/main/packages/gateway/service/index.ts)   
+
+Usecase requestAnalytic bao gồm 3 tác vụ chính có side-effect cần đảm bảo cùng boundary transaction là
+
+* cập nhật dữ liệu task trong DB
+
+* đẩy task vào queue để tương tác với TEE (1)
+
+* gọi upload của onchain (2)
+
+cả ba tác vụ trên đều có thể fail, do vậy dùng event-driven để phối hợp chúng. Sau khi requestAnalytic hoàn thành tạo record cho task, và mã hóa file, thì nó sẽ bắn một event là StartEvent, (1) và (2) sẽ lắng nghe là thực hiện như các [event subscriber]([https://github.com/p77u4n/simple-poc-interview-l2/tree/main/packages/gateway/event-listener/start-event)
+
+#### Up
 
 ```
-yarn start
+yarn
+yarn build
+yarn express-rest:dev
 ```
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-22-20-image.png)
 
-Run smart contract test with `yarn hardhat:test`
+### TEE
 
-- Edit your smart contract `YourContract.sol` in `packages/hardhat/contracts`
-- Edit your frontend in `packages/nextjs/pages`
-- Edit your deployment scripts in `packages/hardhat/deploy`
+Stack: Python, Pika RabbitMQ
 
-## Deploy Contracts to Superchain Testnet(s)
+Chạy như một worker lắng nghe queue đẩy vào để thực hiện xử lý, sau khi xử lý xong sẽ update trạng thái vào trong DB.
 
-To deploy contracts to a remote testnet (e.g. Optimism Sepolia), follow the steps below:
+Tương tác với Gateway thông qua hai cách
 
-1. Get Superchain Sepolia ETH from the [Superchain Faucet](https://app.optimism.io/faucet)
+* Với việc tương tác để invoking thao tác xử lý học máy, thì thông qua task queue, event queue
 
-2. Inside the `packages/hardhat` directory, copy `.env.example` to `.env`.
+* Với việc trao đổi về trạng thái của task thì thông qua bộ nhớ chung là database
 
-   ```bash
-   cd packages/hardhat && cp .env.example .env
-   ```
+#### Up
 
-3. Edit your `.env` to specify the environment variables. Only specifying the `DEPLOYER_PRIVATE_KEY` is necessary here. The contract will be deployed from the address associated with this private key, so make sure it has enough Sepolia ETH.
+```
+poetry shell
+poetry install
+python run-consumer.py
+```
 
-   ```bash
-   DEPLOYER_PRIVATE_KEY = "your_private_key_with_sepolia_ETH";
-   ```
 
-4. Inside `scaffold-op`, run
 
-   ```bash
-   yarn deploy --network-options
-   ```
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-20-41-image.png)
 
-   Use spacebar to make your selection(s). This command deploys all smart contracts in `packages/hardhat/contracts` to the selected network(s). Alternatively, you can try
+## ### User portal
 
-   ```bash
-   yarn deploy --network networkName
-   ```
+Stack: React, Web3Js
 
-   Network names are found in `hardhat.config.js`. Please ensure you have enough Sepolia ETH on all these Superchains. If the deployments are successful, you will see the deployment tx hash on the terminal.
-
-## Adding Foundry
-
-Hardhat's NodeJS stack and cleaner deployment management makes it a better default for Scaffold-OP.
-
-To add Foundry to Scaffold-OP, follow this simple [tutorial](https://hardhat.org/hardhat-runner/docs/advanced/hardhat-and-foundry) by Hardhat. We recommend users who want more robust and faster testing to add Foundry.
-
-## Documentation
-
-We highly recommend visiting the original [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
-
-To know more about its features, check out their [website](https://scaffoldeth.io).
+![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-24-12-image.png)
