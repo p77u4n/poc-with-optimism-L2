@@ -1,7 +1,13 @@
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as Array from 'fp-ts/lib/Array';
 import { ObjectStoragePort } from './object-storage.base';
-import { PutObjectCommand, S3Client, S3ClientConfig } from '@aws-sdk/client-s3';
+import {
+  EncodingType,
+  PutObjectCommand,
+  S3Client,
+  S3ClientConfig,
+  ServerSideEncryption,
+} from '@aws-sdk/client-s3';
 import { get } from 'env-var';
 import { pipe } from 'fp-ts/lib/function';
 import { UploadFile } from 'core/model/file';
@@ -47,6 +53,10 @@ export class S3Port implements ObjectStoragePort {
       Bucket: this.bucketName,
       Key: fileName,
       Body: content,
+      ContentEncoding: 'hex',
+      // not implemented yet by r2 storage
+      // ServerSideEncryption: ServerSideEncryption.AES256,
+      // SSECustomerKey: 'examplekey',
     };
     return pipe(
       TE.tryCatch(

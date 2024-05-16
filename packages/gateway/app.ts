@@ -16,6 +16,7 @@ import { TaskQueuePushing } from 'event-listener/start-event/task-queue-pushing'
 import { OnchainFileUpload } from 'event-listener/start-event/onchain-fileupload';
 import { EventBus } from 'events/event-bus.base';
 import { Registry } from 'registry.base';
+import { Encryptor } from 'ports/encryptor.default';
 
 configDotenv();
 
@@ -67,12 +68,18 @@ const configEventSubs = (eventBus: EventBus) => {
 const getSingleRegistry: () => TE.TaskEither<Error, Registry> = () => {
   const objectStoragePort = new S3Port();
   const eventBus = new SimpleEventBus();
+  const encryptor = Encryptor({
+    secretKey: config.encryptionKey,
+    secretIv: config.encryptionIv,
+    encryptionMethod: config.encryptionMethod,
+  });
   return pipe(
     TE.right({
       commandService: new TypeORMRabbitMqCMDService(
         postgresDTsource,
         objectStoragePort,
         eventBus,
+        encryptor,
       ),
     }),
     TE.tap(() => configEventSubs(eventBus)),

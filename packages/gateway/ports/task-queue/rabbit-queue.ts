@@ -36,7 +36,7 @@ export class RabbitTaskQueue implements TaskQueue {
           this.queue,
           Buffer.from(
             JSON.stringify({
-              taskId: id,
+              docId: id,
             }),
           ),
           {

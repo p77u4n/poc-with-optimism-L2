@@ -3,12 +3,13 @@ import { BaseCommandService } from 'core/service';
 import * as TE from 'fp-ts/lib/TaskEither';
 import * as Opt from 'fp-ts/lib/Option';
 import * as Either from 'fp-ts/lib/Either';
-import { pipe } from 'fp-ts/lib/function';
+import { flow, pipe } from 'fp-ts/lib/function';
 import { DataSource } from 'typeorm';
 import { DMDoc, DMTask } from 'database-typeorm/entities';
 import { UploadFile } from 'core/model/file';
 import { ObjectStoragePort } from 'ports/object-storage.base';
 import { DomainEvent, EventBus } from 'events/event-bus.base';
+import { IEncryptor } from 'ports/encryptor.base';
 
 // has sideeffect so we use IO here to wrap the side-effect logic (FP principle)
 const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
@@ -37,6 +38,7 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
     private datasource: DataSource,
     private objectStorageClient: ObjectStoragePort,
     private eventBus: EventBus,
+    private encryptor: IEncryptor,
   ) {}
 
   createDMTask = (datasource: DataSource) => (task: Task) => {
@@ -76,7 +78,7 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
       TE.chain((dmTask) =>
         TE.tryCatch(
           () => datasource.getRepository(DMTask).save(dmTask),
-          () => new Error('SAVE_'),
+          () => new Error('SAVE_FAILED'),
         ),
       ),
     );
@@ -107,8 +109,20 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
   ): TE.TaskEither<Error, string> {
     const validation = pipe(docId, this._checkIfDocIdSubmit.bind(this));
     const mainLogic = pipe(
-      [fileGene],
-      this.objectStorageClient.updateGeneData,
+      fileGene,
+      flow(
+        (f) => f.content.toString('utf8'),
+        this.encryptor.encryptData,
+        TE.fromEither,
+      ),
+      TE.chain((encryptedF) =>
+        this.objectStorageClient.updateGeneData([
+          {
+            fileName: docId,
+            content: Buffer.from(encryptedF, 'hex'),
+          },
+        ]),
+      ),
       TE.flatMap((fileLinks) =>
         TE.fromEither(
           parseTask({

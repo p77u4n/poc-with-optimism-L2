@@ -41,6 +41,7 @@ export const TaskRoute = (service: BaseCommandService) => {
       result,
       Either.match(
         (e) => {
+          console.error(e);
           res.status(500).send({
             error: e.message,
           });
