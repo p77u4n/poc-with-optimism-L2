@@ -22,7 +22,7 @@ Là file mà người dùng upload lên, có định danh là docID
 
 Kiểm thử chạy trên L2 chain dựng trên local được cung cấp bởi hardhat
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-16-23-39-24-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-16-23-39-24-image.png)
 
 ### Explorer
 
@@ -44,7 +44,7 @@ Bao gồm các service sau
 
 ### Contract
 
-[source](https://github.com/p77u4n/simple-poc-interview-l2/tree/main/packages/genomicdao)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-16-23-55-37-image.png)
 
 #### Test
 
@@ -52,7 +52,7 @@ Bao gồm các service sau
 yarn test
 ```
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-16-23-59-07-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-16-23-59-07-image.png)
 
 ```
 yarn build
@@ -78,7 +78,7 @@ yarn deploy
 
 Được địa chỉ contract ta cần lưu vào để nhét vào env của các service cần interacting với contract
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-02-07-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-17-00-02-07-image.png)
 
 ### Gateway
 
@@ -118,7 +118,7 @@ yarn build
 yarn express-rest:dev
 ```
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-22-20-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-17-00-22-20-image.png)
 
 ### TEE
 
@@ -142,10 +142,10 @@ python run-consumer.py
 
 
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-20-41-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-17-00-20-41-image.png)
 
 ## ### User portal
 
 Stack: React, Web3Js
 
-![](/home/p77u4n/.var/app/com.github.marktext.marktext/config/marktext/images/2024-05-17-00-24-12-image.png)
+![](https://pub-655b129b1b4f44dda33a7f1a9bf4d857.r2.dev/2024-05-17-00-24-12-image.png)
