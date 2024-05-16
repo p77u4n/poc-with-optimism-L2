@@ -1,25 +1,51 @@
-import React, { useEffect } from "react";
-import logo from "./logo.svg";
+import React, { useEffect, useState } from "react";
 import "./App.css";
-import { useGetMyCommands } from "./hooks/useGetMyCommands";
+import { FileUpload } from "./components/FileUpload";
 import TaskTable from "./components/TaskTable";
+import { useGetMyDocId } from "./hooks/useGetMyDoc";
+import { useUploadDoc } from "./hooks/useUploadDoc";
+import { MetaMaskButton, useSDK } from "@metamask/sdk-react-ui";
+import Web3 from "web3";
+import { useWebWallet } from "./hooks/useWebWallet";
+import { DocIdInput } from "./components/InputDocId";
 
 function App() {
-  const { fetchMyCommands, myCommands } = useGetMyCommands(
-    process.env.REACT_APP_API_ENDPOINT || "http://localhost:3003",
-    "bf7ab410-03ad-11ef-a277-c31c49e4e709",
-  );
+  const url = process.env.REACT_APP_API_ENDPOINT || "http://localhost:3003";
+  const { uploadDoc, isLoading, docId, manuallySetDocId } = useUploadDoc(url);
+
+  const { fetchDocIdSession, taskDoc } = useGetMyDocId(url);
+  const { account, submitResult } = useWebWallet();
   useEffect(() => {
-    const tm = setTimeout(fetchMyCommands, 5000);
+    let tm: NodeJS.Timeout;
+    if (docId && taskDoc?.result !== "FINISHED") {
+      tm = setTimeout(() => fetchDocIdSession(docId), 5000);
+    }
     return () => {
-      clearTimeout(tm);
+      if (tm) {
+        clearTimeout(tm);
+      }
     };
-  }, [fetchMyCommands]);
+  }, [docId, fetchDocIdSession]);
+  console.log("taskOdc", taskDoc);
   return (
-    <div className="App flex flex-col content-center justify-center flex-wrap">
-      <div className="m-auto pb-10 pt-10"></div>
-      <button onClick={fetchMyCommands}>Get My Commands</button>
-      <TaskTable tasks={myCommands} />
+    <div className="App flex flex-col content-center justify-center flex-wrap pt-10">
+      <MetaMaskButton theme={"light"} color="white"></MetaMaskButton>
+      <div className="m-auto pb-10 pt-10">
+        <FileUpload
+          onFileSelect={(file) => uploadDoc(file, account)}
+          loading={isLoading}
+        />
+      </div>
+      <DocIdInput onChange={manuallySetDocId} />
+      <TaskTable
+        tasks={taskDoc ? [taskDoc] : []}
+        actionDisbled={taskDoc?.status !== "FINISH"}
+        onConfirm={() => {
+          if (taskDoc) {
+            submitResult(taskDoc);
+          }
+        }}
+      />
     </div>
   );
 }

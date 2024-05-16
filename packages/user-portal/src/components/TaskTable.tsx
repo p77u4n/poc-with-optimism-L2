@@ -5,9 +5,11 @@ import cls from "classnames";
 
 interface Props {
   tasks: Task[];
+  actionDisbled: boolean;
+  onConfirm: () => void;
 }
 
-const TaskTable: React.FC<Props> = ({ tasks }) => {
+const TaskTable: React.FC<Props> = ({ tasks, actionDisbled, onConfirm }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!ref.current) {
@@ -29,6 +31,7 @@ const TaskTable: React.FC<Props> = ({ tasks }) => {
             <th>Input</th>
             <th>Status</th>
             <th>Fail Reason</th>
+            <th>Comfirm Result</th>
           </tr>
         </thead>
         <tbody>
@@ -40,11 +43,11 @@ const TaskTable: React.FC<Props> = ({ tasks }) => {
               .otherwise(() => "");
             console.log("task status", task.status, badgeClassName);
             return (
-              <tr key={task.id}>
-                <td>{task.id}</td>
-                <td>{task.command}</td>
+              <tr key={task.doc_id}>
+                <td>{task.doc_id}</td>
+                <td>{task.session_id}</td>
                 <td>{task.result}</td>
-                <td>{task.input}</td>
+                <td>{task.gene_file}</td>
                 <td>
                   {task.status === "PROCESSING" ? (
                     <span className="loading loading-dots loading-sm"></span>
@@ -55,6 +58,16 @@ const TaskTable: React.FC<Props> = ({ tasks }) => {
                   )}
                 </td>
                 <td>{task.reason}</td>
+                <td>
+                  <button
+                    type="submit"
+                    className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 "
+                    disabled={actionDisbled}
+                    onClick={onConfirm}
+                  >
+                    Call
+                  </button>
+                </td>
               </tr>
             );
           })}

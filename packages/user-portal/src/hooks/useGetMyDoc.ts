@@ -1,31 +1,27 @@
 import { useState } from "react";
-import { Point } from "../model/Point";
 import { Task } from "../model/Task";
 
-export const useGetMyDocId = (url: string, docId: string) => {
+export const useGetMyDocId = (url: string) => {
   const [error, setError] = useState<string | null>(null);
-  const [myCommands, setMyCommands] = useState<Task[]>([]);
+  const [taskDoc, setTaskDoc] = useState<Task>();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const fetchMyCommands = async () => {
+  const fetchDocIdSession = async (docId: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("fetch my commands", url);
-      const response = await fetch(`${url}/command?userId=${userId}`, {
+      const response = await fetch(`${url}/me/gene-data-task/${docId}/status`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
 
-      console.log("response", response);
-
       if (!response.ok) {
         throw new Error("Failed to send coordinates");
       }
-      const tasks = (await response.json()).tasks;
-      setMyCommands(tasks);
+      const task = await response.json();
+      setTaskDoc(task);
 
       setIsLoading(false);
     } catch (error) {
@@ -39,5 +35,5 @@ export const useGetMyDocId = (url: string, docId: string) => {
     }
   };
 
-  return { fetchMyCommands, isLoading, error, myCommands };
+  return { fetchDocIdSession, isLoading, error, taskDoc };
 };

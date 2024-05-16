@@ -147,6 +147,7 @@ async def running_task(task: Task, genomeContent: str):
                     json.encode(
                         {
                             "proof": "proof",
+                            "hash": "doc_hash",
                             "risk_score_tag": score.name,
                             "risk_score_ind": score.value,
                         }

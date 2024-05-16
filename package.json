@@ -6,7 +6,8 @@
     "packages": [
       "packages/genomicdao",
       "packages/nextjs",
-      "packages/gateway"
+      "packages/gateway",
+      "packages/user-portal"
     ]
   },
   "scripts": {

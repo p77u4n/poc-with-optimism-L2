@@ -1,8 +1,8 @@
 export interface Task {
-  id: string;
-  command: string;
+  doc_id: string;
   result?: string;
-  input: string;
+  gene_file: string;
   status: string;
   reason?: string;
+  session_id?: number;
 }

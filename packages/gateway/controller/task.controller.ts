@@ -21,8 +21,11 @@ export const TaskRoute = (service: BaseCommandService) => {
     // user should sign on the address that they claim that belonging to them using its correspond
     // public key, then we should check this signature to guarantee that user own the wallet address
     // but now for the sake of simplicity we only use the plain address
-
-    const files = Object.values(file).flatMap((file) => {
+    if (Object.values(file || {}).length === 0) {
+      res.status(400).send('please upload file');
+      return;
+    }
+    const files = Object.values(file || {}).flatMap((file) => {
       if (Array.isArray(file)) {
         return file.map(
           (f) =>
@@ -61,13 +64,20 @@ export const TaskRoute = (service: BaseCommandService) => {
   });
 
   taskRoute.get('/me/gene-data-task/:docId/status', async (req, res) => {
-    const task = await postgresDTsource
-      .getRepository(DMTask)
-      .findOneBy({ docId: req.params.docId });
-    if (!task) {
-      res.status(404).send('NOT FOUND');
-    } else {
-      res.status(200).send({ status: task.status });
+    console.log('docId', req.params);
+    try {
+      await postgresDTsource
+        .getRepository(DMTask)
+        .findOneBy({ doc_id: req.params.docId })
+        .then((task) => {
+          if (!task) {
+            res.status(404).send('NOT FOUND');
+          } else {
+            res.status(200).send({ ...task });
+          }
+        });
+    } catch (error) {
+      res.status(500).send(error);
     }
   });
   return taskRoute;

@@ -6,6 +6,7 @@ __pycache__
 **/*/node_modules
 **/*/dist
 **/*.env*
+!**/*.example.env*
 !deploy/*.env*
 deploy/rabbitmq/data
 deploy/postgres/data
