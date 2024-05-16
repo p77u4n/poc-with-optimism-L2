@@ -8,7 +8,7 @@ import * as entities from './entities';
 // Initializing dotenv
 config();
 // const TYPEORM_PATH_ROOT = __dirname + '/dist/cjs/database-typeorm'; -> not work for migrations
-const TYPEORM_PATH_ROOT = '/dist/cjs/database-typeorm';
+const TYPEORM_PATH_ROOT = 'dist/cjs/database-typeorm';
 export const postgresDTsource = new DataSource({
   type: 'postgres',
   host: get('DB_HOST').required().asString(),

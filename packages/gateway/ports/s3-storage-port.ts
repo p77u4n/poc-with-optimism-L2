@@ -26,6 +26,7 @@ export class S3Port implements ObjectStoragePort {
     this.s3Client = s3Client;
     this.bucketName = get('R2_BUCKET_NAME').required().asString();
     this.publicDomain = get('R2_PUBLIC').required().asString();
+    this.updateGeneData = this.updateGeneData.bind(this);
   }
   updateGeneData(files: UploadFile[]): TE.TaskEither<Error, string[]> {
     return pipe(

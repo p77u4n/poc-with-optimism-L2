@@ -1,8 +1,8 @@
-import { taskRoute } from 'controller/task.controller';
+import { TaskRoute } from 'controller/task.controller';
 import express from 'express';
 import cors from 'cors';
 import fileUpload from 'express-fileupload';
-import { createUserMiddleware } from 'middleware/auto-create-user';
+import { Registry } from 'registry.base';
 
 export const app = express();
 const port = 3003;
@@ -16,15 +16,12 @@ app.use(
 app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(createUserMiddleware);
 
-app.use(taskRoute);
-
-app.get('/', (req, res) => {
-  res.send('Welcome !');
-});
-
-export const runExpress = () => {
+export const runExpress = (registry: Registry) => {
+  app.use(TaskRoute(registry.commandService));
+  app.get('/', (req, res) => {
+    res.send('Welcome !');
+  });
   app.listen(port, () => {
     console.log(`Example app listening on port ${port}`);
   });

@@ -28,6 +28,7 @@ export class DMTask {
     nullable: false,
     type: 'uuid',
   })
+  @PrimaryColumn()
   doc_id: string;
 
   @Column({

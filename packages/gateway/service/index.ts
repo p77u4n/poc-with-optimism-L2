@@ -8,7 +8,6 @@ import { DataSource } from 'typeorm';
 import { DMDoc, DMTask } from 'database-typeorm/entities';
 import { UploadFile } from 'core/model/file';
 import { ObjectStoragePort } from 'ports/object-storage.base';
-import { TaskQueue } from 'ports/task-queue/task-queue.base';
 import { DomainEvent, EventBus } from 'events/event-bus.base';
 
 // has sideeffect so we use IO here to wrap the side-effect logic (FP principle)
@@ -29,12 +28,13 @@ const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
   return dmTask;
 };
 
-export type RequestStartEvent = DomainEvent<{ docId: string }>;
+export type RequestStartEvent = DomainEvent<{ docId: string; task: Task }>;
+
+export const REQ_START_EVENT_NAME = 'requestStart';
 
 export class TypeORMRabbitMqCMDService implements BaseCommandService {
   constructor(
     private datasource: DataSource,
-    private taskQueue: TaskQueue,
     private objectStorageClient: ObjectStoragePort,
     private eventBus: EventBus,
   ) {}
@@ -105,7 +105,7 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
     docId: string,
     fileGene: UploadFile,
   ): TE.TaskEither<Error, string> {
-    const validation = pipe(docId, this._checkIfDocIdSubmit);
+    const validation = pipe(docId, this._checkIfDocIdSubmit.bind(this));
     const mainLogic = pipe(
       [fileGene],
       this.objectStorageClient.updateGeneData,
@@ -122,18 +122,19 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
       TE.tap(this.createDMTask(this.datasource)),
       TE.tap((task) => {
         this.eventBus.emit<RequestStartEvent>({
-          name: 'requestStart',
+          name: REQ_START_EVENT_NAME,
           data: {
             docId: task.docId,
+            task,
           },
         });
         return TE.right(null);
       }),
-      TE.tap(
-        this.taskQueue.putTask.bind(
-          this.taskQueue,
-        ) as typeof this.taskQueue.putTask,
-      ),
+      // TE.tap(
+      //   this.taskQueue.putTask.bind(
+      //     this.taskQueue,
+      //   ) as typeof this.taskQueue.putTask,
+      // ),
       TE.map((task) => task.docId),
       // put to rabbimq here
     );

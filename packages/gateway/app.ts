@@ -1,5 +1,5 @@
 import { S3Port } from 'ports/s3-storage-port';
-import { TypeORMRabbitMqCMDService } from 'service';
+import { REQ_START_EVENT_NAME, TypeORMRabbitMqCMDService } from 'service';
 import { postgresDTsource } from 'database-typeorm/datasource';
 import { runExpress } from 'restapi-view';
 import { configDotenv } from 'dotenv';
@@ -9,11 +9,23 @@ import amqp from 'amqplib';
 import { get } from 'env-var';
 import { pipe } from 'fp-ts/lib/function';
 import * as Either from 'fp-ts/Either';
+import { OnchainWeb3 } from 'ports/onchain/onchain.web3js';
+import { config } from 'config';
+import { SimpleEventBus } from 'events/simple.event-bust';
+import { TaskQueuePushing } from 'event-listener/start-event/task-queue-pushing';
+import { OnchainFileUpload } from 'event-listener/start-event/onchain-fileupload';
+import { EventBus } from 'events/event-bus.base';
+import { Registry } from 'registry.base';
 
 configDotenv();
 
-const getSingleRegistry = () => {
-  const objectStoragePort = new S3Port();
+const configEventSubs = (eventBus: EventBus) => {
+  const onchainOperator = new OnchainWeb3(
+    config.walletPrivKey,
+    config.onchainRpc,
+    config,
+  );
+
   const queueName = 'task-queue';
   const channelCreate = TE.tryCatch(
     () =>
@@ -35,17 +47,32 @@ const getSingleRegistry = () => {
     channelCreate,
     TE.map((c) => new RabbitTaskQueue(c, queueName)),
     TE.bindTo('taskQueue'),
-    // TE.tap(({ taskQueue }) => taskQueue.putTaskById('testid')),
-    TE.bind('objectStoragePort', () => TE.right(objectStoragePort)),
-    TE.bind('commandService', ({ taskQueue, objectStoragePort }) =>
-      TE.right(
-        new TypeORMRabbitMqCMDService(
-          postgresDTsource,
-          taskQueue,
-          objectStoragePort,
-        ),
-      ),
+    TE.bind('taskQueuePushing', ({ taskQueue }) =>
+      TE.right(TaskQueuePushing({ taskQueue })),
     ),
+    TE.map(({ taskQueuePushing }) => ({
+      taskQueuePushing,
+      onchainFileUpload: OnchainFileUpload({ onchainOperator }),
+    })),
+    TE.tapIO(({ taskQueuePushing, onchainFileUpload }) => () => {
+      eventBus.on(REQ_START_EVENT_NAME, taskQueuePushing);
+      eventBus.on(REQ_START_EVENT_NAME, onchainFileUpload);
+    }),
+  );
+};
+
+const getSingleRegistry: () => TE.TaskEither<Error, Registry> = () => {
+  const objectStoragePort = new S3Port();
+  const eventBus = new SimpleEventBus();
+  return pipe(
+    TE.right({
+      commandService: new TypeORMRabbitMqCMDService(
+        postgresDTsource,
+        objectStoragePort,
+        eventBus,
+      ),
+    }),
+    TE.tap(() => configEventSubs(eventBus)),
   );
 };
 
@@ -58,10 +85,11 @@ const start = async () => {
         console.error('REGISTRY_CREATING_FAILED: ', e);
         throw e;
       },
-      (reg) => {},
+      (reg) => {
+        runExpress(reg);
+      },
     ),
   );
-  runExpress();
 };
 
 start();
