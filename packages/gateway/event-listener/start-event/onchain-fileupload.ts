@@ -20,13 +20,14 @@ export const OnchainFileUpload: Reader.Reader<
         console.error('onchain file upload error: ', e);
         return TE.left(e);
       }),
-      TE.tapIO((events) => () => {
+      TE.map((events) => {
         console.log(
           'session id',
           events['UploadData'].returnValues['sessionId'],
         );
+        return events['UploadData'].returnValues['sessionId'] as bigint;
       }),
-      TE.tap((events: Record<string, EventLog>) => {
+      TE.tap((sessionId) => {
         return TE.tryCatch(
           () =>
             datasource.getRepository(DMTask).update(
@@ -34,13 +35,21 @@ export const OnchainFileUpload: Reader.Reader<
                 doc_id: data.docId,
               },
               {
-                session_id: Number(
-                  events['UploadData'].returnValues['sessionId'],
-                ),
+                session_id: Number(sessionId),
               },
             ),
           (e) => e as Error,
         );
+      }),
+      TE.tap((sessionId) =>
+        // should separate updateSender and initGeneDataAnalysisTask
+        // by event-driven method (eventually consistency), so we can tolerate the case of
+        // one of them failed, and make the state half-completed
+        onchainOperator.updateSender(sessionId, data.senderAddress),
+      ),
+      TE.tapError((e) => {
+        console.error('onchain file update address error: ', e);
+        return TE.left(e);
       }),
     );
   };

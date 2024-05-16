@@ -2,13 +2,11 @@ from typing import final
 import hashlib
 import urllib.request
 
-from cryptography.hazmat.primitives import hashes, padding
+from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-from returns.future import FutureResultE, future_safe
 from returns.result import safe
 from port.gene_file_storage.base import FileReaderBase
-import base64
 
 
 @final

@@ -1,4 +1,4 @@
-import Web3, { EventLog } from 'web3';
+import Web3, { Address, EventLog } from 'web3';
 import { OnchainOperators } from './onchain.base';
 import { TE } from 'yl-ddd-ts';
 import { abi } from 'genomicdao-hardhat';
@@ -15,7 +15,6 @@ export class OnchainWeb3 implements OnchainOperators<EventLog> {
   ) {
     this.web3Instance = new Web3(networkRpcURL);
     this.wallet = this.web3Instance.eth.accounts.wallet.add(privateKey)[0];
-    console.log('wallet address ', this.wallet.address);
   }
 
   initGeneDataAnalysisTask(
@@ -29,6 +28,25 @@ export class OnchainWeb3 implements OnchainOperators<EventLog> {
       async () => {
         return controllerContract.methods
           .uploadData(docId)
+          .send({ from: this.wallet.address })
+          .then((tx) =>
+            tx.status === BigInt(1)
+              ? Promise.resolve(tx.events)
+              : Promise.reject(new Error(tx.transactionHash)),
+          );
+      },
+      (e) => e as Error,
+    );
+  }
+  updateSender(sessionId: bigint, sender: Address): TE.TaskEither<Error, any> {
+    const controllerContract = new this.web3Instance.eth.Contract(
+      abi.Controller,
+      this.config.controllerAddr,
+    );
+    return TE.tryCatch(
+      async () => {
+        return controllerContract.methods
+          .updateDocSender(sessionId, sender)
           .send({ from: this.wallet.address })
           .then((tx) =>
             tx.status === BigInt(1)

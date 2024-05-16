@@ -12,7 +12,6 @@ contract Controller {
 	uint256 private _sessionIdCounter;
 	nft.GeneNFT public geneNFTProxy;
 	token.PostCovidStrokePrevention public pcspTokenProxy;
-	uint256 callNum;
 
 	struct UploadSession {
 		uint256 id;
@@ -53,7 +52,6 @@ contract Controller {
 		// TODO: Implement this method: to start an uploading gene data session.
 		// The doc id is used to identify a unique gene profile. Also should check
 		// if the doc id has been submited to the system before. This method return the session id
-		callNum += 1;
 		if (docSubmits[docId]) {
 			revert("Doc already been submitted");
 		} else {
@@ -70,6 +68,13 @@ contract Controller {
 			emit UploadData(docId, newSessionId);
 			return newSessionId;
 		}
+	}
+
+	function updateDocSender(uint256 sessionId, address docSender) public {
+		if (bytes(sessions[sessionId].docId).length == 0) {
+			revert("Session is not exist");
+		}
+		sessions[sessionId].user = docSender;
 	}
 
 	function verifyProof(string memory proof) private pure returns (bool) {

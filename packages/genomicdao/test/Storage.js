@@ -160,5 +160,18 @@ describe("Controller", function () {
         controller.connect(addr1).confirm(docId2, contentHash, proof, sessionId, riskScore),
       ).to.be.revertedWith("DocId and SessionId not belong to each other");
     });
+
+    it("Update doc sender", async function () {
+      const { controller, addr2 } = await loadFixture(deployControllerFixture);
+
+      const docId = "doc1";
+      const sessionId = 0;
+
+      await controller.uploadData(docId);
+      await controller.updateDocSender(sessionId, addr2);
+      // await controller.connect(addr1).confirm(docId, contentHash, proof, sessionId, riskScore);
+      const session = await controller.getSession(sessionId);
+      expect(session.user).to.be.equal(addr2);
+    });
   });
 });

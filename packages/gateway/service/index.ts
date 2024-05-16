@@ -10,6 +10,7 @@ import { UploadFile } from 'core/model/file';
 import { ObjectStoragePort } from 'ports/object-storage.base';
 import { DomainEvent, EventBus } from 'events/event-bus.base';
 import { IEncryptor } from 'ports/encryptor.base';
+import { Address } from 'web3';
 
 // has sideeffect so we use IO here to wrap the side-effect logic (FP principle)
 const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
@@ -29,7 +30,11 @@ const dataMapperForTask = (dmTask: DMTask, task: Task) => () => {
   return dmTask;
 };
 
-export type RequestStartEvent = DomainEvent<{ docId: string; task: Task }>;
+export type RequestStartEvent = DomainEvent<{
+  docId: string;
+  task: Task;
+  senderAddress: Address;
+}>;
 
 export const REQ_START_EVENT_NAME = 'requestStart';
 
@@ -106,6 +111,7 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
   requestAnalytic(
     docId: string,
     fileGene: UploadFile,
+    userAddress: Address,
   ): TE.TaskEither<Error, string> {
     const validation = pipe(docId, this._checkIfDocIdSubmit.bind(this));
     const mainLogic = pipe(
@@ -140,6 +146,7 @@ export class TypeORMRabbitMqCMDService implements BaseCommandService {
           data: {
             docId: task.docId,
             task,
+            senderAddress: userAddress,
           },
         });
         return TE.right(null);

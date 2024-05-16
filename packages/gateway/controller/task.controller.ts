@@ -17,6 +17,10 @@ export const TaskRoute = (service: BaseCommandService) => {
   taskRoute.post('/me/gene-data-task', async (req, res) => {
     const docId = v4();
     const file = req.files;
+    const address = req.body.walletAddress;
+    // user should sign on the address that they claim that belonging to them using its correspond
+    // public key, then we should check this signature to guarantee that user own the wallet address
+    // but now for the sake of simplicity we only use the plain address
 
     const files = Object.values(file).flatMap((file) => {
       if (Array.isArray(file)) {
@@ -36,7 +40,7 @@ export const TaskRoute = (service: BaseCommandService) => {
         ];
       }
     });
-    const result = await service.requestAnalytic(docId, files[0])();
+    const result = await service.requestAnalytic(docId, files[0], address)();
     pipe(
       result,
       Either.match(

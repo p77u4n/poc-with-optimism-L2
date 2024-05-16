@@ -36,7 +36,6 @@ export const Encryptor: Reader.Reader<
             cipher.update(data),
             cipher.final(),
           ]); // Encrypts data and converts to hex and base64
-          console.log('data encrypted', dataEncrypted);
           return dataEncrypted.toString('hex');
         },
         (e) => e as Error,
