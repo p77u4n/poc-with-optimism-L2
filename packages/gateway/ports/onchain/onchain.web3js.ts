@@ -1,10 +1,10 @@
-import Web3 from 'web3';
+import Web3, { EventLog } from 'web3';
 import { OnchainOperators } from './onchain.base';
 import { TE } from 'yl-ddd-ts';
 import { abi } from 'genomicdao-hardhat';
 import { AppConfig } from 'config.base';
 
-export class OnchainWeb3 implements OnchainOperators {
+export class OnchainWeb3 implements OnchainOperators<EventLog> {
   web3Instance: Web3;
   wallet: Web3['eth']['accounts']['wallet'][0];
 
@@ -18,7 +18,9 @@ export class OnchainWeb3 implements OnchainOperators {
     console.log('wallet address ', this.wallet.address);
   }
 
-  initGeneDataAnalysisTask(docId: string): TE.TaskEither<Error, string> {
+  initGeneDataAnalysisTask(
+    docId: string,
+  ): TE.TaskEither<Error, Record<string, EventLog>> {
     const controllerContract = new this.web3Instance.eth.Contract(
       abi.Controller,
       this.config.controllerAddr,
@@ -30,7 +32,7 @@ export class OnchainWeb3 implements OnchainOperators {
           .send({ from: this.wallet.address })
           .then((tx) =>
             tx.status === BigInt(1)
-              ? Promise.resolve(tx.transactionHash)
+              ? Promise.resolve(tx.events)
               : Promise.reject(new Error(tx.transactionHash)),
           );
       },

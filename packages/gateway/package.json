@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "build": "tsc --project ./tsconfig.json --outdir ./dist/cjs",
+    "build": "rimraf dist/cjs && tsc --project ./tsconfig.json --outdir ./dist/cjs",
     "typeorm": "npm run build && npx typeorm -d dist/cjs/database-typeorm/datasource.js",
     "migration:generate": "npm run typeorm -- migration:generate database-typeorm/migrations/$0",
     "migration:run": "npm run build && npm run typeorm -- migration:run",
@@ -63,6 +63,7 @@
     "eslint-plugin-prettier": "^5.0.0",
     "nodemon": "^2.0.19",
     "prettier": "^3.2.5",
+    "rimraf": "^5.0.7",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.1.0",
     "typescript": "^5.4.5"

@@ -52,7 +52,10 @@ const configEventSubs = (eventBus: EventBus) => {
     ),
     TE.map(({ taskQueuePushing }) => ({
       taskQueuePushing,
-      onchainFileUpload: OnchainFileUpload({ onchainOperator }),
+      onchainFileUpload: OnchainFileUpload({
+        onchainOperator,
+        datasource: postgresDTsource,
+      }),
     })),
     TE.tapIO(({ taskQueuePushing, onchainFileUpload }) => () => {
       eventBus.on(REQ_START_EVENT_NAME, taskQueuePushing);

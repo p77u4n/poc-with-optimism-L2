@@ -49,7 +49,7 @@ const getContractData = async (address: string) => {
     "..",
     "..",
     "..",
-    "hardhat",
+    "genomicdao",
     "artifacts",
     "build-info",
   );

@@ -31,6 +31,9 @@ export class DMTask {
   @PrimaryColumn()
   doc_id: string;
 
+  @Column({ type: 'int', nullable: true })
+  session_id: number;
+
   @Column({
     type: 'text',
     nullable: true,
